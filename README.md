@@ -1,4 +1,4 @@
-# HomeMatch Backend API
+# Hg Backend API
 
 A Node.js/Express backend API for the HomeMatch platform.
 
