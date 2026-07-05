@@ -1,4 +1,4 @@
-# HomeMatch Backend API Documentation & Readiness Report
+# Hg Backend API Documentation & Readiness Report
 
 ## 1. Production Readiness Check
 
