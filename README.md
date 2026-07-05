@@ -66,13 +66,6 @@ The server will start on the port specified in .env (default: 3000)
 - `npm run lint` - Lint the code
 - `npm run format` - Format code with prettier
 
-## API Documentation
-
-API endpoints will be documented here as they are developed.
-
-## Contributing
-
-Guidelines for contributing to this project will be added here.
 
 ## License
 
