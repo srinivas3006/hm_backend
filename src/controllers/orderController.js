@@ -1,96 +1,25 @@
-const mongoose = require('mongoose');
 const Order = require('../models/Order');
-const Book = require('../models/Book');
-const crypto = require('crypto');
-const QRCode = require('qrcode');
-const QRCode = require('qrcode');
+const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const { sendOrderConfirmation } = require('../utils/emailService');
+const orderPaymentBridgeService = require('../services/orderPaymentBridgeService');
+const eventBus = require('../events/eventBus');
 
 // @desc    Create new order and return UPI QR code (Uses MongoDB Transactions)
-// @route   POST /api/orders/checkout
+// @route   POST /api/orders
 // @access  Private
 const createOrder = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { items, shippingAddress, paymentMethod } = req.body;
 
-    if (!items || items.length === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ success: false, message: 'No order items' });
-    }
-
-    let subtotal = 0;
-    const orderItems = [];
-
-    // Verify prices from DB, calculate totals, and decrement stock atomically
-    for (const item of items) {
-      const bId = item.bookId || item.book;
-      // Find the book and lock it for this transaction
-      const book = await Book.findById(bId).session(session);
-      
-      if (!book) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(404).json({ success: false, message: `Book not found: ${bId}` });
-      }
-
-      if (book.stock < item.quantity) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ success: false, message: `Insufficient stock for book: ${book.title}` });
-      }
-      
-      const itemTotal = book.price * item.quantity;
-      subtotal += itemTotal;
-      
-      orderItems.push({
-        book: book._id,
-        quantity: item.quantity,
-        price: book.price
-      });
-
-      // Decrement stock
-      book.stock -= item.quantity;
-      await book.save({ session });
-    }
-
-    const tax = Number((0.05 * subtotal).toFixed(2)); // Example 5% tax
-    const shippingPrice = subtotal > 500 ? 0 : 50; // Free shipping over 500
-    const totalPrice = subtotal + tax + shippingPrice;
-    const orderNumber = `HM-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
-
-    const order = new Order({
-      orderNumber,
-      user: req.user._id,
-      items: orderItems,
+    const { order: createdOrder, payment } = await orderPaymentBridgeService.createOrderWithPaymentIntent({
+      user: req.user,
+      items,
       shippingAddress,
-      subtotal,
-      tax,
-      shippingPrice,
-      totalPrice,
-      paymentMethod: paymentMethod || 'UPI',
-      status: 'PENDING'
+      paymentMethod
     });
 
-    const createdOrder = await order.save({ session });
-
-    // Commit the transaction
-    await session.commitTransaction();
-    session.endSession();
-
-    // Generate UPI QR Code Payload (Post-transaction)
-    const upiId = process.env.MERCHANT_UPI_ID || 'merchant@upi';
-    const merchantName = process.env.MERCHANT_NAME || 'Harglim Publishers';
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${totalPrice}&cu=INR&tn=Order%20${orderNumber}`;
-    
-    // Generate base64 QR code image
-    const qrCodeDataUrl = await QRCode.toDataURL(upiUrl);
-
-    logger.info(`Order created successfully: ${orderNumber}`);
+    logger.info(`Order created successfully: ${createdOrder.orderNumber}`);
     
     // Send order confirmation email asynchronously
     sendOrderConfirmation(req.user, createdOrder);
@@ -99,18 +28,12 @@ const createOrder = async (req, res) => {
       success: true,
       data: {
         order: createdOrder,
-        payment: {
-          upiUrl,
-          qrCodeDataUrl,
-          amount: totalPrice
-        }
+        payment
       }
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     logger.error(`Order creation failed: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
 };
 
@@ -153,34 +76,14 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'UTR (Transaction ID) is required' });
     }
 
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    // Ensure order belongs to user or is admin (omitted complex check for brevity, assuming user matches)
-    if (order.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Not authorized to update this order' });
-    }
-
-    order.utr = utr;
-    order.status = 'PENDING'; // Still pending until admin manually verifies
-    
-    // Add tracking update
-    order.trackingUpdates.push({
-      status: 'Payment Submitted',
-      description: `UTR ${utr} submitted. Waiting for admin verification.`,
-    });
-
-    await order.save();
+    const order = await orderPaymentBridgeService.submitOrderUTR(req.params.id, utr, req.user);
 
     res.json({
       success: true,
       data: order
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
 };
 
@@ -188,15 +91,27 @@ const verifyPayment = async (req, res) => {
 // @route   DELETE /api/orders/:id
 // @access  Private
 const cancelOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    session.startTransaction();
+
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      eventBus.discardSession(session);
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
     
     if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      await session.abortTransaction();
+      eventBus.discardSession(session);
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     if (order.status !== 'PENDING') {
+      await session.abortTransaction();
+      eventBus.discardSession(session);
       return res.status(400).json({ success: false, message: 'Can only cancel pending orders' });
     }
 
@@ -206,10 +121,24 @@ const cancelOrder = async (req, res) => {
       description: 'Order cancelled by user',
     });
     
-    await order.save();
+    await order.save({ session });
+    await orderPaymentBridgeService.releaseOrderInventory(order._id, {
+      userId: req.user._id
+    }, {
+      session,
+      actorType: req.user.role === 'admin' ? 'ADMIN' : 'CUSTOMER',
+      reason: 'Inventory reservation released after order cancellation'
+    });
+
+    await session.commitTransaction();
+    await eventBus.flushSession(session);
     res.json({ success: true, data: order });
   } catch (error) {
+    await session.abortTransaction();
+    eventBus.discardSession(session);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
   }
 };
 

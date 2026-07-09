@@ -1,72 +1,54 @@
-# Hg Backend API
+# HM Backend API
 
-A Node.js/Express backend API for the HomeMatch platform.
+Production Node.js/Express backend for commerce, publishing, payments, inventory, invoices, notifications, shipping, analytics, and admin operations.
 
-## Project Structure
+## Features
 
-```
-hm_backend/
-├── src/
-│   ├── models/           # MongoDB schemas
-│   ├── controllers/      # Business logic
-│   ├── routes/          # API routes
-│   ├── middleware/      # Custom middleware
-│   ├── config/          # Configuration files
-│   ├── services/        # Business services
-│   ├── utils/           # Utility functions
-│   ├── validators/      # Input validation schemas
-│   ├── jobs/            # Scheduled jobs
-│   └── constants/       # Application constants
-├── public/              # Static files
-├── tests/               # Test files
-├── server.js            # Application entry point
-├── package.json         # Project dependencies
-├── .env.example         # Environment template
-└── .gitignore          # Git ignore rules
-```
+- JWT authentication and role authorization.
+- Book catalog, search, authors, publishing requests.
+- Order checkout with UPI payment bridge.
+- Payment engine with repository/service separation and immutable ledger.
+- Reservation-based inventory engine with ledger.
+- Invoice generation and admin download APIs.
+- Asynchronous notification engine.
+- Shipping and fulfillment engine.
+- Analytics/reporting projections.
+- Swagger UI at `/api/docs`.
 
-## Getting Started
+## Technology Stack
 
-### Prerequisites
-- Node.js (v14 or higher)
-- npm (v6 or higher)
-- MongoDB
+Node.js, Express 5, MongoDB, Mongoose, Jest, Supertest, Swagger, Winston, Cloudinary, Resend, QRCode.
 
-### Installation
+## Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd hm_backend
-```
-
-2. Install dependencies:
 ```bash
 npm install
-```
-
-3. Create .env file:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-4. Start the development server:
-```bash
+cp .env.example .env # if present, otherwise create .env from docs/deployment.md
 npm run dev
 ```
 
-The server will start on the port specified in .env (default: 3000)
+## Documentation
 
-## Available Scripts
+- Swagger UI: `/api/docs`
+- OpenAPI JSON: `docs/openapi.json`
+- OpenAPI YAML: `docs/openapi.yaml`
+- Postman: `docs/postman_collection.json`
+- Frontend guide: `docs/frontend-api-guide.md`
+- Architecture: `docs/architecture.md`
+- Deployment: `docs/deployment.md`
 
-- `npm start` - Start the production server
-- `npm run dev` - Start the development server with auto-reload (nodemon)
-- `npm test` - Run tests
-- `npm run lint` - Lint the code
-- `npm run format` - Format code with prettier
+## Testing
 
+```bash
+npm test
+```
+
+Known issues: generic parameter route ordering should be reviewed before adding new nested public routes.
+
+## Roadmap
+
+Royalty system, GST/tax extensions, BI dashboards, multi-warehouse inventory, AI insights.
 
 ## License
 
-ISC
+ISC.
