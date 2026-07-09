@@ -37,6 +37,11 @@ const bookSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    reservedStock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     ratings: {
       type: Number,
       default: 0,

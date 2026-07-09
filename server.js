@@ -6,9 +6,11 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
+const { clean: cleanXss } = require('xss-clean/lib/xss');
 const connectDB = require('./src/config/database');
 const logger = require('./src/utils/logger');
+const { registerSubscribers } = require('./src/events/registerSubscribers');
+const { mountSwagger } = require('./src/docs/swagger');
 
 // Catch unhandled promise rejections
 process.on('unhandledRejection', (err) => {
@@ -24,6 +26,7 @@ process.on('uncaughtException', (err) => {
 });
 
 const app = express();
+registerSubscribers();
 
 // Middleware
 app.use(helmet());
@@ -34,11 +37,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
-// Data sanitization against NoSQL query injection
-app.use(mongoSanitize());
+// Data sanitization against NoSQL query injection.
+// express-mongo-sanitize's middleware mutates req.query by assignment, which
+// is incompatible with Express 5's read-only query getter. Use the package's
+// sanitizer directly so the protection stays active without replacing req.query.
+app.use((req, res, next) => {
+  mongoSanitize.sanitize(req.body);
+  mongoSanitize.sanitize(req.params);
+  mongoSanitize.sanitize(req.query);
+  next();
+});
 
-// Data sanitization against XSS
-app.use(xss());
+// Data sanitization against XSS with Express 5-compatible req.query handling.
+app.use((req, res, next) => {
+  if (req.body) req.body = cleanXss(req.body);
+  if (req.params) req.params = cleanXss(req.params);
+  if (req.query) {
+    const cleanedQuery = cleanXss(req.query);
+    Object.keys(req.query).forEach((key) => delete req.query[key]);
+    Object.assign(req.query, cleanedQuery);
+  }
+  next();
+});
 
 // Global Rate Limiting
 const limiter = rateLimit({
@@ -49,6 +69,7 @@ const limiter = rateLimit({
   message: { success: false, message: 'Too many requests from this IP, please try again later.' }
 });
 app.use('/api', limiter); // Apply to all API routes
+mountSwagger(app);
 
 // Auth Specific Rate Limiting (Stricter)
 const authLimiter = rateLimit({

@@ -1,0 +1,95 @@
+const endpointInventory = [
+  { method: 'GET', path: '/health', tag: 'System', summary: 'Health check', auth: 'Public', controller: 'server.js', notes: 'Returns server liveness only.' },
+
+  { method: 'POST', path: '/api/auth/register', tag: 'Authentication', summary: 'Register user', auth: 'Public', controller: 'authController.registerUser', body: 'RegisterRequest' },
+  { method: 'POST', path: '/api/auth/login', tag: 'Authentication', summary: 'Login user', auth: 'Public', controller: 'authController.loginUser', body: 'LoginRequest' },
+  { method: 'GET', path: '/api/auth/me', tag: 'Authentication', summary: 'Get current user', auth: 'Bearer', controller: 'authController.getMe' },
+
+  { method: 'GET', path: '/api/books', tag: 'Books', summary: 'List books', auth: 'Public', controller: 'bookController.getBooks', query: ['page', 'limit', 'category', 'search', 'sort'] },
+  { method: 'GET', path: '/api/books/{slug}', tag: 'Books', summary: 'Get book by slug', auth: 'Public', controller: 'bookController.getBookBySlug', params: ['slug'] },
+  { method: 'GET', path: '/api/books/{slug}/related', tag: 'Books', summary: 'Get related books', auth: 'Public', controller: 'bookController.getRelatedBooks', params: ['slug'] },
+  { method: 'GET', path: '/api/books/{slug}/reviews', tag: 'Books', summary: 'Get book reviews', auth: 'Public', controller: 'bookController.getBookReviews', params: ['slug'] },
+  { method: 'GET', path: '/api/search', tag: 'Books', summary: 'Search books', auth: 'Public', controller: 'bookController.searchBooks', query: ['q', 'page', 'limit', 'category'] },
+
+  { method: 'POST', path: '/api/orders', tag: 'Orders', summary: 'Create order with payment, inventory, QR bridge', auth: 'Bearer', controller: 'orderController.createOrder', body: 'OrderCreateRequest' },
+  { method: 'PUT', path: '/api/orders/{id}/verify-payment', tag: 'Orders', summary: 'Verify order payment reference', auth: 'Bearer', controller: 'orderController.verifyPayment', params: ['id'], body: 'PaymentVerificationRequest' },
+  { method: 'DELETE', path: '/api/orders/{id}', tag: 'Orders', summary: 'Cancel order', auth: 'Bearer', controller: 'orderController.cancelOrder', params: ['id'] },
+  { method: 'GET', path: '/api/orders/{id}/shipment', tag: 'Orders', summary: 'Get order shipment', auth: 'Bearer', controller: 'orderShipmentController.getOrderShipment', params: ['id'] },
+  { method: 'GET', path: '/api/orders/{id}/tracking', tag: 'Orders', summary: 'Get order tracking', auth: 'Bearer', controller: 'orderShipmentController.getOrderTracking', params: ['id'] },
+  { method: 'GET', path: '/api/orders/track/{orderNumber}', tag: 'Orders', summary: 'Track order by order number', auth: 'Public', controller: 'orderController.trackOrder', params: ['orderNumber'] },
+
+  { method: 'POST', path: '/api/uploads/image', tag: 'Uploads', summary: 'Upload image', auth: 'Bearer', controller: 'uploadController.uploadImage', body: 'MultipartImageRequest' },
+  { method: 'POST', path: '/api/uploads/document', tag: 'Uploads', summary: 'Upload document', auth: 'Bearer', controller: 'uploadController.uploadDocument', body: 'MultipartDocumentRequest' },
+
+  { method: 'GET', path: '/api/users/{id}/stats', tag: 'Users', summary: 'Get user stats', auth: 'Bearer', controller: 'userController.getUserStats', params: ['id'] },
+  { method: 'PUT', path: '/api/users/{id}', tag: 'Users', summary: 'Update user profile', auth: 'Bearer', controller: 'userController.updateUserProfile', params: ['id'], body: 'UserUpdateRequest' },
+  { method: 'GET', path: '/api/users/{id}/orders', tag: 'Users', summary: 'Get user orders', auth: 'Bearer', controller: 'userController.getUserOrders', params: ['id'] },
+  { method: 'GET', path: '/api/users/{id}/wishlist', tag: 'Users', summary: 'Get user wishlist', auth: 'Bearer', controller: 'userController.getUserWishlist', params: ['id'] },
+  { method: 'GET', path: '/api/users/{id}/library', tag: 'Users', summary: 'Get user library', auth: 'Bearer', controller: 'userController.getUserLibrary', params: ['id'] },
+  { method: 'POST', path: '/api/users/{id}/wishlist', tag: 'Users', summary: 'Add book to wishlist', auth: 'Bearer', controller: 'userController.addToWishlist', params: ['id'], body: 'WishlistRequest' },
+  { method: 'DELETE', path: '/api/users/{id}/wishlist/{bookId}', tag: 'Users', summary: 'Remove book from wishlist', auth: 'Bearer', controller: 'userController.removeFromWishlist', params: ['id', 'bookId'] },
+
+  { method: 'GET', path: '/api/authors', tag: 'Authors', summary: 'List authors', auth: 'Public', controller: 'authorController.getAuthors' },
+  { method: 'GET', path: '/api/authors/{id}', tag: 'Authors', summary: 'Get author', auth: 'Public', controller: 'authorController.getAuthorById', params: ['id'] },
+  { method: 'GET', path: '/api/authors/{id}/books', tag: 'Authors', summary: 'Get author books', auth: 'Public', controller: 'authorController.getAuthorBooks', params: ['id'] },
+  { method: 'GET', path: '/api/authors/{id}/stats', tag: 'Authors', summary: 'Get author stats', auth: 'Bearer', controller: 'authorController.getAuthorStats', params: ['id'] },
+  { method: 'GET', path: '/api/authors/{id}/analytics', tag: 'Authors', summary: 'Get author analytics alias', auth: 'Bearer', controller: 'authorController.getAuthorStats', params: ['id'] },
+  { method: 'GET', path: '/api/authors/{id}/royalties/history', tag: 'Authors', summary: 'Get author royalty history', auth: 'Bearer', controller: 'authorController.getAuthorRoyaltiesHistory', params: ['id'] },
+
+  { method: 'POST', path: '/api/publish-requests', tag: 'Publishing', summary: 'Create publish request', auth: 'Author/Admin', controller: 'publishController.createPublishRequest', body: 'PublishRequestCreate' },
+  { method: 'GET', path: '/api/publish-packages', tag: 'Publishing', summary: 'List publish packages', auth: 'Public', controller: 'publishController.getPublishPackages' },
+
+  { method: 'GET', path: '/api/admin/analytics', tag: 'Admin Core', summary: 'Admin analytics summary', auth: 'Admin', controller: 'adminController.getAdminAnalytics' },
+  { method: 'GET', path: '/api/admin/stats', tag: 'Admin Core', summary: 'Admin stats alias', auth: 'Admin', controller: 'adminController.getAdminAnalytics' },
+  { method: 'GET', path: '/api/admin/orders', tag: 'Admin Core', summary: 'List orders', auth: 'Admin', controller: 'adminController.getOrders' },
+  { method: 'PUT', path: '/api/admin/orders/{id}/status', tag: 'Admin Core', summary: 'Update order status', auth: 'Admin', controller: 'adminController.updateOrderStatus', params: ['id'], body: 'StatusUpdateRequest' },
+  { method: 'GET', path: '/api/admin/publish-requests', tag: 'Admin Core', summary: 'List publish requests', auth: 'Admin', controller: 'adminController.getPublishRequests' },
+  { method: 'PUT', path: '/api/admin/publish-requests/{id}/status', tag: 'Admin Core', summary: 'Update publish request status', auth: 'Admin', controller: 'adminController.updatePublishRequestStatus', params: ['id'], body: 'StatusUpdateRequest' },
+  { method: 'POST', path: '/api/admin/books', tag: 'Admin Core', summary: 'Create book', auth: 'Admin', controller: 'adminController.createBook', body: 'BookCreateRequest' },
+  { method: 'PUT', path: '/api/admin/books/{id}', tag: 'Admin Core', summary: 'Update book', auth: 'Admin', controller: 'adminController.updateBook', params: ['id'], body: 'BookUpdateRequest' },
+  { method: 'DELETE', path: '/api/admin/books/{id}', tag: 'Admin Core', summary: 'Delete book', auth: 'Admin', controller: 'adminController.deleteBook', params: ['id'] },
+
+  { method: 'GET', path: '/api/admin/operations/dashboard', tag: 'Admin Operations', summary: 'Operations dashboard', auth: 'Admin', controller: 'adminOperationsController.dashboardSummary' },
+  { method: 'GET', path: '/api/admin/operations/search', tag: 'Admin Operations', summary: 'Global operations search', auth: 'Admin', controller: 'adminOperationsController.globalSearch', query: ['q', 'type', 'page', 'limit'] },
+  { method: 'GET', path: '/api/admin/operations/payments', tag: 'Admin Operations', summary: 'List payments', auth: 'Admin', controller: 'adminOperationsController.listPayments', query: ['status', 'page', 'limit', 'from', 'to'] },
+  { method: 'GET', path: '/api/admin/operations/payments/{id}', tag: 'Admin Operations', summary: 'Payment detail', auth: 'Admin', controller: 'adminOperationsController.getPaymentDetail', params: ['id'] },
+  { method: 'POST', path: '/api/admin/operations/payments/{id}/approve', tag: 'Admin Operations', summary: 'Approve payment', auth: 'Admin', controller: 'adminOperationsController.approvePayment', params: ['id'] },
+  { method: 'POST', path: '/api/admin/operations/payments/{id}/reject', tag: 'Admin Operations', summary: 'Reject payment', auth: 'Admin', controller: 'adminOperationsController.rejectPayment', params: ['id'], body: 'RejectPaymentRequest' },
+  { method: 'POST', path: '/api/admin/operations/payments/{id}/cancel', tag: 'Admin Operations', summary: 'Cancel payment intent', auth: 'Admin', controller: 'adminOperationsController.cancelPaymentIntent', params: ['id'] },
+  { method: 'POST', path: '/api/admin/operations/payments/{id}/expire', tag: 'Admin Operations', summary: 'Expire payment intent', auth: 'Admin', controller: 'adminOperationsController.expirePayment', params: ['id'] },
+  { method: 'POST', path: '/api/admin/operations/payments/{id}/retry-verification', tag: 'Admin Operations', summary: 'Retry payment verification', auth: 'Admin', controller: 'adminOperationsController.retryVerification', params: ['id'] },
+  { method: 'POST', path: '/api/admin/operations/payments/{id}/recreate-qr', tag: 'Admin Operations', summary: 'Recreate payment QR', auth: 'Admin', controller: 'adminOperationsController.recreateQR', params: ['id'] },
+  { method: 'GET', path: '/api/admin/operations/inventory/reservations', tag: 'Admin Operations', summary: 'List inventory reservations', auth: 'Admin', controller: 'adminOperationsController.listReservations' },
+  { method: 'GET', path: '/api/admin/operations/inventory/low-stock', tag: 'Admin Operations', summary: 'List low stock books', auth: 'Admin', controller: 'adminOperationsController.listLowStock' },
+  { method: 'GET', path: '/api/admin/operations/ledger/payments', tag: 'Admin Operations', summary: 'List payment ledger', auth: 'Admin', controller: 'adminOperationsController.listPaymentLedger' },
+  { method: 'GET', path: '/api/admin/operations/ledger/inventory', tag: 'Admin Operations', summary: 'List inventory ledger', auth: 'Admin', controller: 'adminOperationsController.listInventoryLedger' },
+  { method: 'GET', path: '/api/admin/operations/ledger/timeline', tag: 'Admin Operations', summary: 'Combined ledger timeline', auth: 'Admin', controller: 'adminOperationsController.combinedTimeline' },
+
+  { method: 'GET', path: '/api/admin/invoices/search', tag: 'Admin Invoices', summary: 'Search invoices', auth: 'Admin', controller: 'adminInvoiceController.searchInvoices' },
+  { method: 'GET', path: '/api/admin/invoices', tag: 'Admin Invoices', summary: 'List invoices', auth: 'Admin', controller: 'adminInvoiceController.listInvoices' },
+  { method: 'GET', path: '/api/admin/invoices/{id}/download', tag: 'Admin Invoices', summary: 'Download invoice document', auth: 'Admin', controller: 'adminInvoiceController.downloadInvoice', params: ['id'] },
+  { method: 'GET', path: '/api/admin/invoices/{id}', tag: 'Admin Invoices', summary: 'Get invoice', auth: 'Admin', controller: 'adminInvoiceController.getInvoice', params: ['id'] },
+
+  { method: 'GET', path: '/api/admin/notifications/search', tag: 'Admin Notifications', summary: 'Search notifications', auth: 'Admin', controller: 'adminNotificationController.searchNotifications' },
+  { method: 'GET', path: '/api/admin/notifications', tag: 'Admin Notifications', summary: 'List notifications', auth: 'Admin', controller: 'adminNotificationController.listNotifications' },
+  { method: 'GET', path: '/api/admin/notifications/{id}', tag: 'Admin Notifications', summary: 'Get notification', auth: 'Admin', controller: 'adminNotificationController.getNotification', params: ['id'] },
+  { method: 'POST', path: '/api/admin/notifications/{id}/retry', tag: 'Admin Notifications', summary: 'Retry failed notification', auth: 'Admin', controller: 'adminNotificationController.retryNotification', params: ['id'] },
+
+  { method: 'GET', path: '/api/admin/shipments/search', tag: 'Admin Shipments', summary: 'Search shipments', auth: 'Admin', controller: 'adminShipmentController.searchShipments' },
+  { method: 'GET', path: '/api/admin/shipments', tag: 'Admin Shipments', summary: 'List shipments', auth: 'Admin', controller: 'adminShipmentController.listShipments' },
+  { method: 'GET', path: '/api/admin/shipments/{id}/tracking', tag: 'Admin Shipments', summary: 'Get shipment tracking', auth: 'Admin', controller: 'adminShipmentController.getTracking', params: ['id'] },
+  { method: 'GET', path: '/api/admin/shipments/{id}', tag: 'Admin Shipments', summary: 'Get shipment', auth: 'Admin', controller: 'adminShipmentController.getShipment', params: ['id'] },
+  { method: 'POST', path: '/api/admin/shipments/{id}/assign-courier', tag: 'Admin Shipments', summary: 'Assign courier', auth: 'Admin', controller: 'adminShipmentController.assignCourier', params: ['id'], body: 'CourierAssignRequest' },
+  { method: 'POST', path: '/api/admin/shipments/{id}/update-status', tag: 'Admin Shipments', summary: 'Update shipment status', auth: 'Admin', controller: 'adminShipmentController.updateStatus', params: ['id'], body: 'StatusUpdateRequest' },
+  { method: 'POST', path: '/api/admin/shipments/{id}/cancel', tag: 'Admin Shipments', summary: 'Cancel shipment', auth: 'Admin', controller: 'adminShipmentController.cancelShipment', params: ['id'] },
+
+  { method: 'GET', path: '/api/admin/analytics/dashboard', tag: 'Admin Analytics', summary: 'Analytics dashboard', auth: 'Admin', controller: 'adminAnalyticsController.dashboard' },
+  { method: 'GET', path: '/api/admin/analytics/revenue', tag: 'Admin Analytics', summary: 'Revenue report', auth: 'Admin', controller: 'adminAnalyticsController.revenue' },
+  { method: 'GET', path: '/api/admin/analytics/books', tag: 'Admin Analytics', summary: 'Book sales report', auth: 'Admin', controller: 'adminAnalyticsController.books' },
+  { method: 'GET', path: '/api/admin/analytics/payments', tag: 'Admin Analytics', summary: 'Payment metrics', auth: 'Admin', controller: 'adminAnalyticsController.payments' },
+  { method: 'GET', path: '/api/admin/analytics/inventory', tag: 'Admin Analytics', summary: 'Inventory metrics', auth: 'Admin', controller: 'adminAnalyticsController.inventory' },
+  { method: 'GET', path: '/api/admin/analytics/shipments', tag: 'Admin Analytics', summary: 'Shipment metrics', auth: 'Admin', controller: 'adminAnalyticsController.shipments' },
+  { method: 'GET', path: '/api/admin/analytics/customers', tag: 'Admin Analytics', summary: 'Customer metrics', auth: 'Admin', controller: 'adminAnalyticsController.customers' }
+];
+
+module.exports = { endpointInventory };

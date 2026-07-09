@@ -64,6 +64,10 @@ const orderSchema = new mongoose.Schema(
     utr: {
       type: String, // Unique Transaction Reference for UPI
     },
+    payment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Payment',
+    },
     status: {
       type: String,
       enum: ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
